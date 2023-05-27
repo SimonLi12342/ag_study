@@ -25,5 +25,3 @@ rules.ninja
 *.opendb
 Debug
 x64
-/scene
-scenes/

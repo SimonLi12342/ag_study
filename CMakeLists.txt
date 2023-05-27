@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.8)
 project(nori)
 
 add_subdirectory(ext ext_build)
@@ -64,8 +64,6 @@ add_executable(nori
   include/nori/transform.h
   include/nori/vector.h
   include/nori/warp.h
-  include/nori/octree.h
-  #include/nori/KdTree.h
 
   # Source code files
   src/bitmap.cpp
@@ -91,8 +89,6 @@ add_executable(nori
   src/mirror.cpp
   src/dielectric.cpp
   src/normals.cpp
-  src/octree.cpp
-  #src/KdTree.cpp
 )
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
