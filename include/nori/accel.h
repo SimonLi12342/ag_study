@@ -7,6 +7,8 @@
 #pragma once
 
 #include <nori/mesh.h>
+#include <queue>
+#include <utility>
 
 NORI_NAMESPACE_BEGIN
 
@@ -16,6 +18,21 @@ NORI_NAMESPACE_BEGIN
  * The current implementation falls back to a brute force loop
  * through the geometry.
  */
+struct AccelNode
+{
+    uint32_t child = 0;
+    BoundingBox3f bbox;
+    std::vector<std::pair<uint32_t, uint32_t>> indices;
+
+    AccelNode() : bbox() {}
+
+    explicit AccelNode(BoundingBox3f box)
+        : bbox(std::move(box)) {}
+
+    AccelNode(BoundingBox3f box, uint32_t size)
+        : bbox(std::move(box)), indices(size) {}
+};
+
 class Accel {
 public:
     /**
@@ -51,11 +68,29 @@ public:
      *
      * \return \c true if an intersection was found
      */
+
+    void divide(uint32_t n, std::vector<AccelNode>* children);
+
+    bool traverse(uint32_t n, Ray3f& ray, Intersection& its, uint32_t& f, bool shadowRay) const;
+
+    std::pair<uint32_t, uint32_t> getLimits() const { return { 16, 12 };}
+
     bool rayIntersect(const Ray3f &ray, Intersection &its, bool shadowRay) const;
+
+    uint32_t getTotalTriangleCount() const { return m_indexes.size(); }
+
+protected:
+    std::vector<Mesh*> m_meshes;
+    BoundingBox3f m_bbox;
+    std::vector<AccelNode> m_tree;
+    std::vector<std::pair<uint32_t, uint32_t>> m_indexes;
+
+    uint32_t depth_curr_ = 1;
+    uint32_t count_leaf_ = 1;
+    uint32_t count_node_ = 1;
 
 private:
     Mesh         *m_mesh = nullptr; ///< Mesh (only a single one for now)
-    BoundingBox3f m_bbox;           ///< Bounding box of the entire scene
 };
 
 NORI_NAMESPACE_END
