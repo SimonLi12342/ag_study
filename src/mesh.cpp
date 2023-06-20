@@ -26,6 +26,16 @@ void Mesh::activate() {
         m_bsdf = static_cast<BSDF *>(
             NoriObjectFactory::createInstance("diffuse", PropertyList()));
     }
+
+    m_area = 0.0f;
+    m_disPdf.reserve(getTriangleCount());
+    for (int i = 0; i < getTriangleCount(); ++i)
+    {
+        auto area = surfaceArea(i);
+        m_area += area;
+        m_disPdf.append(area);
+    }
+    m_disPdf.normalize();
 }
 
 float Mesh::surfaceArea(uint32_t index) const {
@@ -150,6 +160,40 @@ std::string Intersection::toString() const {
         indent(geoFrame.toString()),
         mesh ? mesh->toString() : std::string("null")
     );
+}
+
+SampleMeshResult Mesh::sampleSurfaceUniform(Sampler* sampler) const
+{
+    SampleMeshResult sample_result;
+    uint32_t index = m_disPdf.sample(sampler->next1D());
+
+    Point2f r = sampler->next2D();
+    float s = sqrt(1 - r.x());
+    float alpha = 1 - s;
+    float beta = r.y() * s;
+
+    Point3f v0 = m_V.col(m_F(0, index));
+    Point3f v1 = m_V.col(m_F(1, index));
+    Point3f v2 = m_V.col(m_F(2, index));
+
+    sample_result.p = alpha * v0 + beta * v1 + (1 - alpha - beta) * v2;
+
+    if (m_N.size() != 0)
+    {
+        Vector3f n0 = m_N.col(m_F(0, index));
+        Vector3f n1 = m_N.col(m_F(1, index));
+        Vector3f n2 = m_N.col(m_F(2, index));
+        sample_result.n = (alpha * n0 + beta * n1 + (1 - alpha - beta) * n2).normalized();
+    }
+    else
+    {
+        Vector3f e0 = v1 - v0;
+        Vector3f e1 = v2 - v1;
+        sample_result.n = e0.cross(e1).normalized();
+    }
+
+    sample_result.pdf = m_disPdf.getNormalization();
+    return sample_result;
 }
 
 NORI_NAMESPACE_END

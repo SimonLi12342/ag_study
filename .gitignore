@@ -4,6 +4,7 @@ scenes/pa2/ajax.obj
 /nori
 /warptest
 /ext_build
+/scenes
 CMakeCache.txt
 CMakeSettings.json
 CMakeFiles

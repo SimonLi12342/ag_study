@@ -79,7 +79,7 @@ public:
 
     uint32_t getTotalTriangleCount() const { return m_indexes.size(); }
 
-protected:
+private:
     std::vector<Mesh*> m_meshes;
     BoundingBox3f m_bbox;
     std::vector<AccelNode> m_tree;

@@ -29,32 +29,25 @@ void Accel::build() {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    //初始化树
     m_tree.clear();
     auto root = AccelNode(m_bbox, getTotalTriangleCount());
     root.indices = m_indexes;
     m_tree.emplace_back(root);
 
-    //初始化辅助队列
     std::queue<uint32_t> q;
     q.push(0);
 
-    //初始化子节点列表
     auto children = std::vector<AccelNode>();
 
-    //获取限制条件
+    //get the limits
     auto [LIMIT_COUNT, LIMIT_DEPTH] = getLimits();
-    //构建树
+
     while (!q.empty()) {
-        uint32_t n = q.size();//层次遍历
+        uint32_t n = q.size();
         for (uint32_t k = 0; k < n; k++) {
-            //限制之内对节点继续分叉
             if (m_tree[q.front()].indices.size() > LIMIT_COUNT && depth_curr_ < LIMIT_DEPTH) {
-                //设置子节点起始索引
                 m_tree[q.front()].child = m_tree.size();
-                //分割子节点
                 divide(q.front(), &children);
-                //子节点加入树，索引入队
                 --count_leaf_;
                 for (auto& child : children) {
                     q.push(m_tree.size());
@@ -63,7 +56,6 @@ void Accel::build() {
                     ++count_leaf_;
                 }
             }
-            //清理无用数据
             q.pop();
             children.clear();
             children.shrink_to_fit();
@@ -82,11 +74,9 @@ void Accel::build() {
 
 void Accel::divide(uint32_t n, std::vector<AccelNode>* children) {
     auto& node = m_tree[n];
-    //获取包围盒中心点
     Vector3f center = node.bbox.getCenter();
-    //获取包围盒八个拐角点
     for (size_t i = 0; i < 8; i++) {
-        //构建子包围盒
+
         Vector3f corner = node.bbox.getCorner(i);
         BoundingBox3f bbox_sub;
         for (uint32_t j = 0; j < 3; j++) {
@@ -94,10 +84,9 @@ void Accel::divide(uint32_t n, std::vector<AccelNode>* children) {
             bbox_sub.max[j] = std::max(center[j], corner[j]);
         }
 
-        //构建子节点
         AccelNode node_sub(bbox_sub);
         for (auto [faceIndex, meshIdx] : node.indices) {
-            //检测节点持有的图元与子包围盒是否重叠
+
             if (bbox_sub.overlaps(m_meshes[meshIdx]->getBoundingBox(faceIndex))) {
                 node_sub.indices.emplace_back(faceIndex, meshIdx);
             }
@@ -109,18 +98,14 @@ void Accel::divide(uint32_t n, std::vector<AccelNode>* children) {
 bool Accel::traverse(uint32_t n, Ray3f& ray, Intersection& its, uint32_t& f, bool shadowRay) const {
     auto& node = m_tree[n];
 
-    //当前节点包围盒与射线碰撞
     if (!node.bbox.rayIntersect(ray))
         return false;
 
     bool isHit = false;
 
-    //节点为叶子节点
     if (node.child == 0) {
         float u, v, t;
-        //遍历节点内的图元
         for (auto [faceIndex, meshIndex] : node.indices) {
-            //求与射线相交的最近的图元
             if (m_meshes[meshIndex]->rayIntersect(faceIndex, ray, u, v, t) && t < ray.maxt) {
                 if (shadowRay) {
                     return true;
@@ -138,10 +123,10 @@ bool Accel::traverse(uint32_t n, Ray3f& ray, Intersection& its, uint32_t& f, boo
         std::pair<uint32_t, float> children[8] = {};
         for (uint32_t i = 0; i < 8; i++) {
             auto ptr = node.child + i;
-            //求出节点到光线原点的距离
+            //get the distance from node to light source
             children[i] = { ptr, m_tree[ptr].bbox.distanceTo(ray.o) };
         }
-        //按子节点距离排序
+        //sort based on the node distance
         std::sort(
             children,
             children + 8,
@@ -149,7 +134,7 @@ bool Accel::traverse(uint32_t n, Ray3f& ray, Intersection& its, uint32_t& f, boo
                 return lhs.second < rhs.second;
             }
         );
-        //递归子节点的求交
+        //traverse
         for (auto& child : children) {
             isHit |= traverse(child.first, ray, its, f, shadowRay);
             if (shadowRay && isHit) {
