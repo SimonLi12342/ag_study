@@ -79,6 +79,9 @@ add_executable(nori
   src/obj.cpp
   src/object.cpp
   src/parser.cpp
+  src/path_ems.cpp
+  src/path_mats.cpp
+  src/path_mis.cpp
   src/perspective.cpp
   src/proplist.cpp
   src/rfilter.cpp
